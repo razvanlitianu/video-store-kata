@@ -2,8 +2,7 @@ import XCTest
 @testable import VideoStore
 
 class CustomerTests: XCTestCase {
-
-    private var customer: Customer!
+    private var statement: Statement!
     private var newRelease1: Movie!
     private var newRelease2: Movie!
     private var childrens1: Movie!
@@ -11,75 +10,64 @@ class CustomerTests: XCTestCase {
     private var regular1: Movie!
     private var regular2: Movie!
     private var regular3: Movie!
+    
+    private var delta = 0.001
 
     public override func setUp() {
         super.setUp()
-        customer = Customer(name: "Customer Name")
-        newRelease1 = Movie(title: "New Release 1", priceCode: .newRelease)
-        newRelease2 = Movie(title: "New Release 2", priceCode: .newRelease)
-        childrens1 = Movie(title: "Childrens 1", priceCode: .childern)
-        childrens2 = Movie(title: "Childrens 2", priceCode: .childern)
-        regular1 = Movie(title: "Regular 1", priceCode: .regular)
-        regular2 = Movie(title: "Regular 2", priceCode: .regular)
-        regular3 = Movie(title: "Regular 3", priceCode: .regular)
+        statement = Statement(customerName: "Customer Name")
+        newRelease1 = NewReleaseMovie(title: "New Release 1")
+        newRelease2 = NewReleaseMovie(title: "New Release 2")
+        childrens1 = ChildrenMovie(title: "Childrens 1")
+        childrens2 = ChildrenMovie(title: "Childrens 2")
+        regular1 = RegularMovie(title: "Regular 1")
+        regular2 = RegularMovie(title: "Regular 2")
+        regular3 = RegularMovie(title: "Regular 3")
     }
 
-    public func testSingleNewReleaseStatement() {
-        customer.add(rental: Rental(movie: newRelease1, daysRented: 3))
-
-        XCTAssertEqual(
-            "Rental Record for Customer Name\n" +
-                "\tNew Release 1\t9.0\n" +
-                "Amount owed is 9.0\n" +
-            "You earned 2 frequent renter points\n",
-            customer.statement()
-        )
+    public func testSingleNewReleaseStatementTotals() {
+        statement.add(rental: Rental(movie: newRelease1, daysRented: 3))
+        _ = statement.generate()
+        XCTAssertEqual(9.0, statement.totalAmount, accuracy: delta)
+        XCTAssertEqual(2, statement.frequentRenterPoints)
     }
 
-    public func testMultipleNewReleaseStatement() {
-        customer.add(rental: Rental(movie: newRelease1, daysRented: 1))
-        customer.add(rental: Rental(movie: newRelease2, daysRented: 3))
-
-        XCTAssertEqual(
-            "Rental Record for Customer Name\n" +
-                "\tNew Release 1\t3.0\n" +
-                "\tNew Release 2\t9.0\n" +
-                "Amount owed is 12.0\n" +
-            "You earned 3 frequent renter points\n",
-            customer.statement()
-        )
+    public func testMultipleNewReleaseStatementTotals() {
+        statement.add(rental: Rental(movie: newRelease1, daysRented: 1))
+        statement.add(rental: Rental(movie: newRelease2, daysRented: 3))
+        _ = statement.generate()
+        XCTAssertEqual(12.0, statement.totalAmount, accuracy: delta)
+        XCTAssertEqual(3, statement.frequentRenterPoints)
     }
 
-    public func testSingleChildrensStatement() {
-        customer.add(rental: Rental(movie: childrens1, daysRented: 3))
-
-        XCTAssertEqual(
-            "Rental Record for Customer Name\n" +
-                "\tChildrens 1\t1.5\n" +
-                "Amount owed is 1.5\n" +
-            "You earned 1 frequent renter points\n",
-            customer.statement()
-        )
+    public func testSingleChildrensStatementTotals() {
+        statement.add(rental: Rental(movie: childrens1, daysRented: 3))
+        _ = statement.generate()
+        XCTAssertEqual(1.5, statement.totalAmount, accuracy: delta)
+        XCTAssertEqual(1, statement.frequentRenterPoints)
     }
 
-    public func testMultipleChildrensStatement() {
-        customer.add(rental: Rental(movie: childrens1, daysRented: 3))
-        customer.add(rental: Rental(movie: childrens2, daysRented: 4))
-
-        XCTAssertEqual(
-            "Rental Record for Customer Name\n" +
-                "\tChildrens 1\t1.5\n" +
-                "\tChildrens 2\t3.0\n" +
-                "Amount owed is 4.5\n" +
-            "You earned 2 frequent renter points\n",
-            customer.statement()
-        )
+    public func testMultipleChildrensStatementTotals() {
+        statement.add(rental: Rental(movie: childrens1, daysRented: 3))
+        statement.add(rental: Rental(movie: childrens2, daysRented: 4))
+        _ = statement.generate()
+        XCTAssertEqual(4.5, statement.totalAmount, accuracy: delta)
+        XCTAssertEqual(2, statement.frequentRenterPoints)
+    }
+    
+    public func testMultipleRegularStatementTotals() {
+        statement.add(rental: Rental(movie: regular1, daysRented: 1))
+        statement.add(rental: Rental(movie: regular2, daysRented: 2))
+        statement.add(rental: Rental(movie: regular3, daysRented: 3))
+        _ = statement.generate()
+        XCTAssertEqual(7.5, statement.totalAmount, accuracy: delta)
+        XCTAssertEqual(3, statement.frequentRenterPoints)
     }
 
-    public func testMultipleRegularStatement() {
-        customer.add(rental: Rental(movie: regular1, daysRented: 1))
-        customer.add(rental: Rental(movie: regular2, daysRented: 2))
-        customer.add(rental: Rental(movie: regular3, daysRented: 3))
+    public func testMultipleRegularStatementFormat() {
+        statement.add(rental: Rental(movie: regular1, daysRented: 1))
+        statement.add(rental: Rental(movie: regular2, daysRented: 2))
+        statement.add(rental: Rental(movie: regular3, daysRented: 3))
 
         XCTAssertEqual(
             "Rental Record for Customer Name\n" +
@@ -88,7 +76,7 @@ class CustomerTests: XCTestCase {
                 "\tRegular 3\t3.5\n" +
                 "Amount owed is 7.5\n" +
             "You earned 3 frequent renter points\n",
-            customer.statement()
+            statement.generate()
         )
     }
 }
